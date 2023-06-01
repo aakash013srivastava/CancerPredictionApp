@@ -47,11 +47,13 @@ class Cancer:
 
         
     def delete_fields(self):
-        self.fields = ""
+        self.fields = []
         for num,name in enumerate(self.df.columns):
-            self.fields+= str(num)+":="+name+"||"
-        self.lbl_disp_fields = ttk.Label(self.root,text=self.fields)
-        self.lbl_disp_fields.grid(row=3,column=1)
+            self.fields.append(str(num)+":="+name)
+        self.num_sep_col_list = ttk.Label(self.root,text="Number separated column list:")
+        self.num_sep_col_list.grid(row=3,column=1)
+        self.lbl_disp_fields = ttk.Combobox(self.root,values=self.fields)
+        self.lbl_disp_fields.grid(row=3,column=3)
         self.lbl_ask_del_fields = ttk.Label(self.root,text="Enter comma-separated field numbers to delete")
         self.lbl_ask_del_fields.grid(row=4,column=1)
         self.del_entry = ttk.Entry(self.root)    
@@ -62,17 +64,24 @@ class Cancer:
     def log_reg(self):
         col_nums = self.del_entry.get().split(',')
         self.delete_list = [self.df.columns[int(x)] for x in col_nums]
-        self.delete_list.append(self.combo_dependent.get())
-        print(self.delete_list)
+        
+        self.dependent_col_df = self.df[[self.combo_dependent.get()]]
+        
+        self.df.drop(self.delete_list,axis=1,inplace=True)
+        
+
+        self.independent_cols = list(set(self.df.columns) - set(self.dependent_col_df.columns))
+        
+        self.independent_col_df = self.df.loc[:,self.independent_cols]
+        self.independent_col_df = pd.get_dummies(self.independent_col_df)        
+        
+
+        X = self.independent_col_df.values
+        y = self.dependent_col_df.values
+
         
         
-        self.after_delete_cols = [x for x in self.df.columns if x not in self.delete_list]
-        print(self.after_delete_cols)
-        self.df = self.df.drop(self.df[self.after_delete_cols],axis=1)
-        
-        
-        X = self.df.iloc[:,2:].values
-        y = self.df.iloc[:,1].values
+        # Encode dependent categorical variable
         le = LabelEncoder()
         y = le.fit_transform(y)
         
@@ -88,10 +97,11 @@ class Cancer:
         y_pred = classifier.predict(X_test)
         print(np.concatenate((y_pred.reshape(len(y_pred),1),y_test.reshape(len(y_test),1)),1))
 
-        # cm = confusion_matrix(y_test,y_pred)
-        # print(cm)
-        # score = accuracy_score(y_test,y_pred)
-        # print(score)
+        print("_______:_______")
+        cm = confusion_matrix(y_test,y_pred)
+        print(cm)
+        score = accuracy_score(y_test,y_pred)
+        print(score)
 
 
 Cancer()
